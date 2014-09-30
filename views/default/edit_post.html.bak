@@ -1,0 +1,28 @@
+{{extend 'layout.html'}}
+
+<ul id="breadcrumb" class="breadcrumb"></ul>
+
+<h2>
+    {{=T("Edit your post")}}
+</h2>
+
+<small>{{=T("for category")}} {{=form.record.category.name}}</small>
+
+<hr>
+
+{{=form}}
+
+<script>
+    jQuery( document ).ready(function() {
+        jQuery("table").css({width: "100%"});
+        jQuery(".text").css({width: "100%"});
+        jQuery("#post_name_id__row").hide();
+
+        jQuery("#submit_record__row .w2p_fw").append('{{=A("Markmin syntax",_class='btn btn-info',_href="http://www.web2py.com/init/static/markmin.html", _target="_blank")}}');
+
+        if (localStorage["breadcrumb"] != null) {
+            var contentsOfOldDiv = JSON.parse(localStorage["breadcrumb"]);
+            $("#breadcrumb").html(contentsOfOldDiv);
+        }
+    });
+</script>

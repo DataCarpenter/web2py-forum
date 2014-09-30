@@ -1,0 +1,423 @@
+# -*- coding: utf-8 -*-
+
+#http://hostname/app/default/index
+#http://hostname/app/default/create_post/<category>
+#http://hostname/app/default/edit_post/<id>
+#http://hostname/app/default/list_posts_by_datetime/<category>/<page>
+#http://hostname/app/default/list_posts_by_votes/<category>/<page>
+#http://hostname/app/default/list_posts_by_author/<user_id>/<page>
+#http://hostname/app/default/view_post/<id>
+#http://hostname/app/default/vote_post/<id>/<up or down>
+#http://hostname/app/default/comm_vote_post/<comm_id>/<up or down>
+
+import json
+
+POSTS_PER_PAGE = 40
+
+def get_category():
+    category_id = request.args(0)
+    category = db.category(name_id=category_id)
+    if not category:
+        #session.flash = "page not found"
+        redirect(URL('index'))
+    return category
+
+def get_avatar(created_by):
+    avatar = db(db.auth_user.id==created_by).select("picture", cache=(cache.ram,60),cacheable=True).first().picture
+    if avatar:
+        return avatar
+    else:
+        return None
+def index():
+    if auth.user:
+        return locals()
+    else:
+        redirect(URL(request.application, 'default', 'not_logged'))
+
+def forum():
+    if auth.user:
+        master_category = db(db.master_category).select()
+        priority_m_cat = db.my_key_value(my_key="priority_m_cat")
+        priority_m_cat = json.loads(priority_m_cat.my_value)
+        rows = db(db.category).select()
+        user_logged = user_logged_in()
+        for category in rows:
+            category.nbr_post = db(db.post.category==category.id).count()
+            category.avatar = get_avatar(category.created_by)
+        return locals()
+    else:
+        redirect(URL(request.application, 'default', 'not_logged'))
+
+def not_logged():
+    return locals()
+
+@auth.requires_login()
+def create_post():
+    category = get_category()
+    db.post.category.default = category.id
+    form = SQLFORM(db.post).process(next='view_post/[id]')
+    return locals()
+
+@auth.requires_login()
+def list_posts_by_datetime():
+    response.view = 'default/list_posts_by_votes.html'
+    category = get_category()
+    user_logged = user_logged_in()
+    page = request.args(1, cast=int, default=0)
+    start = page*POSTS_PER_PAGE
+    stop = start+POSTS_PER_PAGE
+    rows = db(db.post.category==category.id).select(orderby=~db.post.created_on,limitby=(start, stop))
+    for post in rows:
+        post.avatar = get_avatar(post.created_by)
+
+        interest = db.interest(post_id=post.id, created_by=auth.user.id)
+        if interest is not None:
+            post.interest = "yep"
+        else:
+            post.interest = "no"
+
+    return locals()
+
+@auth.requires_login()
+def list_posts_by_votes():
+    category = get_category()
+    user_logged = user_logged_in()
+    page = request.args(1, cast=int, default=0)
+    start = page*POSTS_PER_PAGE
+    stop = start+POSTS_PER_PAGE
+    rows = db(db.post.category==category.id).select(orderby=~db.post.votes,limitby=(start, stop))
+    for post in rows:
+        post.avatar = get_avatar(post.created_by)
+
+        interest = db.interest(post_id=post.id, created_by=auth.user.id)
+        if interest is not None:
+            post.interest = "yep"
+        else:
+            post.interest = "no"
+    return locals()
+
+@auth.requires_login()
+def list_posts_by_author():
+    user_logged = user_logged_in()
+    response.view = 'default/list_posts_by_votes.html'
+    user_id = request.args(0, cast=int)
+    page = request.args(1, cast=int, default=0)
+    start = page*POSTS_PER_PAGE
+    stop = start+POSTS_PER_PAGE
+    rows = db(db.post.created_by==user_id).select(orderby=~db.post.created_on,limitby=(start, stop))
+    for post in rows:
+        post.avatar = get_avatar(post.created_by)
+
+        interest = db.interest(post_id=post.id, created_by=auth.user.id)
+        if interest is not None:
+            post.interest = "yep"
+        else:
+            post.interest = "no"
+    return locals()
+
+@auth.requires_login()
+def view_post():
+    post_id = request.args(0)
+    post = db.post(name_id=post_id) or redirect(URL('index'))
+    category = db.category(id=post.category)
+    user_logged = user_logged_in()
+    comment = db(db.comm.post==post.id).select(orderby=~db.comm.created_on, limitby=(0,1)).first()
+    if auth.user:
+        vues = db.vue(post=post.id, created_by=auth.user.id)
+        if vues==None:
+            db.vue.insert(post=post.id, vue=1)
+            current_vue = post.nbr_vue + 1
+            post.update_record(nbr_vue=current_vue)
+
+        db.comm.post.default = post.id
+        db.comm.parent_comm.default = comment.id if comment else None
+        form = SQLFORM(db.comm, buttons=['submit'])
+        if form.process().accepted:
+            post.update_record(modified_on=request.now)
+            category.update_record(modified_on=request.now)
+            current_msg = post.nbr_msg + 1
+            post.update_record(nbr_msg=current_msg)
+
+            add_send_update_mail(post.id, form.vars.id)
+            #send_mail()
+    else:
+        form = A("login to comment", _href=URL('user/login', vars=dict(_next=URL(args=request.args))))
+
+    rows = db(db.comm.post==post.id).select(orderby=db.comm.created_on)
+    for comment in rows:
+        comment.avatar = get_avatar(comment.created_by)
+    return locals()
+
+@auth.requires_login()
+def edit_post():
+    post_id = request.args(0)
+    post = db.post(name_id=post_id)
+    form = SQLFORM(db.post, post, showid=False).process(next='view_post/[name_id]')
+    master_category = db(db.master_category).select()
+    return locals()
+
+@auth.requires_membership('moderator')
+def create_master_category():
+    form = SQLFORM(db.master_category).process(next='index')
+    return locals()
+
+@auth.requires_membership('moderator')
+def edit_master_category():
+    m_cat_id = request.args(0)
+    m_cat = db.master_category(id=m_cat_id)
+    form = SQLFORM(db.master_category, m_cat, showid=False).process(next='index')
+    return locals()
+
+@auth.requires_membership('moderator')
+def create_category():
+    form = SQLFORM(db.category).process(next='index')
+    return locals()
+
+@auth.requires_membership('moderator')
+def edit_category():
+    category_id = request.args(0)
+    category = db.category(name_id=category_id)
+    form = SQLFORM(db.category, category, showid=False).process(next='index')
+    return locals()
+
+# http://hostname/app/default/vote_callback?id=2&direction=up
+@auth.requires_login()
+def vote_callback():
+    vars = request.post_vars
+    if vars and auth.user:
+        id = vars.id
+        direction = +1 if vars.direction == 'up' else -1
+        post = db.post(name_id=id)
+        category = db.category(id=post.category)
+        if post:
+            vote = db.vote(post=post.id,created_by=auth.user.id)
+            if not vote:
+                #Pas encore eu de vote
+                #response.flash = 1
+                post.update_record(votes=post.votes+direction)
+                db.vote.insert(post=post.id, score=direction)
+                category.update_record(modified_on=request.now)
+            elif vote.score!=direction:
+                #response.flash = "total : " + str(post.votes)
+                post.update_record(votes=post.votes+direction*2)
+                vote.update_record(score=direction)
+                category.update_record(modified_on=request.now)
+            else:
+                #response.flash = 3
+                pass # voted twice in same direction
+    return str(post.votes)
+
+@auth.requires_login()
+def comm_vote_callback():
+    vars = request.post_vars
+    if vars and auth.user:
+        id = vars.id
+        direction = +1 if vars.direction == 'up' else -1
+        comm = db.comm(id)
+        if comm:
+            vote = db.comm_vote(comm=id,created_by=auth.user.id)
+            if not vote:
+                #Pas encore eu de vote
+                #response.flash = 1
+                comm.update_record(votes=comm.votes+direction)
+                db.comm_vote.insert(comm=id, score=direction)
+            elif vote.score!=direction:
+                #response.flash = 2
+                comm.update_record(votes=comm.votes+direction*2)
+                vote.update_record(score=direction)
+            else:
+                response.flash = 3
+                pass # voter voted twice in same direction
+    return str(comm.votes)
+
+@auth.requires_login()
+def prior_callback():
+    vars = request.post_vars
+    direction = -1 if vars.direction == 'up' else +1
+    priority_m_cat = db.my_key_value(my_key="priority_m_cat")
+
+    if priority_m_cat:
+        my_value = json.loads(priority_m_cat.my_value)
+        m_cat_pos = my_value.index(str(vars.id))
+        if m_cat_pos+direction >= 0 and m_cat_pos+direction <= len(my_value):
+            my_value.insert(m_cat_pos+direction, my_value.pop(m_cat_pos))
+        my_value = json.dumps(my_value)
+        db.my_key_value.update_or_insert(db.my_key_value.my_key=='priority_m_cat', my_key='priority_m_cat', my_value=my_value)
+    else:
+        my_value = []
+        for row in db().select(db.master_category.ALL):
+            my_value.append(str(row.id))
+
+        m_cat_pos = my_value.index(str(vars.id))
+        if m_cat_pos+direction >= 0 and m_cat_pos+direction <= len(my_value):
+            my_value.insert(m_cat_pos+direction, my_value.pop(m_cat_pos))
+        my_value = json.dumps(my_value)
+        db.my_key_value.update_or_insert(db.my_key_value.my_key=='priority_m_cat', my_key='priority_m_cat', my_value=my_value)
+
+    #print my_value
+    return True
+
+@auth.requires_login()
+def post_interest():
+    vars = request.post_vars
+    if auth.user:
+        if vars.status == "yep":
+            db.interest.update_or_insert((db.interest.post_id==vars.id) & (db.interest.created_by==auth.user.id), post_id=vars.id, created_by=auth.user.id)
+        else:
+            db((db.interest.post_id==vars.id) & (db.interest.created_by==auth.user.id)).delete()
+    return True
+
+@auth.requires_login()
+def add_send_update_mail(post_id, comm_id):
+    for rows in db(db.interest.post_id==post_id, db.interest.created_by==auth.user.id).select():
+        my_email = db(db.auth_user.id==rows.created_by).select("email").first().email
+        db.task_interest_mail.update_or_insert((db.task_interest_mail.post_id==post_id) &
+                                               (db.task_interest_mail.comm_id==comm_id) &
+                                               (db.task_interest_mail.email==my_email), post_id=post_id, comm_id=comm_id, email=my_email)
+
+
+#def send_mail():
+#    #while True:
+#    for row in db(db.task_interest_mail).select():
+#        post = db(db.post.id==row.post_id).select().first()
+#        comment = db(db.comm.id==row.comm_id).select().first()
+#        """
+#        print "send mail to: " + row.email
+#        print "mail subject: " + post.title
+#        print "html body : " + '<html>' +\
+#                              '<h1>' + post.title + '</h1>' +\
+#                              markmin2html(post.body) +\
+#                              '<hr>' +\
+#                              T('%s say: ', db.auth_user[comment.created_by].nickname or db.auth_user[comment.created_by].first_name) +\
+#                              T('"%s"', comment.body) +\
+#                              '</html>'
+#        """
+#        try:
+#            mail.send(row.email,
+#                      T('The post %s are updated', post.title),
+#                      '<html>' +
+#                          '<h1>' + post.title + '</h1>' +
+#                          T('%s say: ', db.auth_user[comment.created_by].nickname or db.auth_user[comment.created_by].first_name) +
+#                          T('"%s"', comment.body) +
+#                      '</html>')
+#            #print db(db.task_interest_mail.id==row.id).select()
+#            db(db.task_interest_mail.id==row.id).delete()
+#        except Exception, e:
+#            print ("send mail to: %s failed, retry in 1 min. Error : %s", row.email, e)
+
+#test if a user is logged
+def login_status():
+    if auth.user:
+        return True
+    else:
+        return False
+
+#test if a user is member of a group
+@auth.requires_login()
+def group_status():
+    vars = request.post_vars
+    if auth.user:
+        if auth.has_membership(group_id=vars.groups_name):
+            return True
+        else:
+            return "unknown"
+    else:
+        return False
+
+def user():
+    """
+    exposes:
+    http://..../[app]/default/user/login
+    http://..../[app]/default/user/logout
+    http://..../[app]/default/user/register
+    http://..../[app]/default/user/profile
+    http://..../[app]/default/user/retrieve_password
+    http://..../[app]/default/user/change_password
+    http://..../[app]/default/user/manage_users (requires membership in
+    use @auth.requires_login()
+        @auth.requires_membership('group name')
+        @auth.requires_permission('read','table name',record_id)
+    to decorate functions that need access control
+    """
+    if request.args(0) == 'register':
+        db.auth_user.address.readable = db.auth_user.address.writable = False
+        db.auth_user.city.readable = db.auth_user.city.writable = False
+        db.auth_user.zip.readable = db.auth_user.zip.writable = False
+        db.auth_user.phone.readable = db.auth_user.phone.writable = False
+        db.auth_user.birthday.readable = db.auth_user.birthday.writable = False
+        db.auth_user.picture.readable = db.auth_user.picture.writable = False
+        db.auth_user.nickname.readable = db.auth_user.nickname.writable = False
+    return dict(form=auth())
+
+def profile():
+    """
+    used for display profile page
+    """
+    record = db.person(request.args(0))
+    form = SQLFORM(db.person, record, deletable=True, upload=URL('download'))
+
+    if form.process().accepted:
+        #response.flash = 'form accepted:' + form.vars.name
+        db.person.insert(name=form.vars.name,
+                         first_name=form.vars.first_name,
+                         birthday=form.vars.birthday)
+    elif form.errors:
+        response.flash = 'form has errors'
+    else:
+        response.flash = 'please fill the form'
+    # Note: no form instance is passed to the view
+    return dict(form=form)
+
+def my_page():
+    """
+    user page
+    """
+    return dict()
+
+@auth.requires_login()
+def user_logged_in():
+    import datetime, json
+    limit = request.now - datetime.timedelta(minutes=15)
+    query = db.auth_event.time_stamp > limit
+    query &= db.auth_event.description.contains('Logged-')
+    events = db(query).select(db.auth_event.user_id, db.auth_event.description, orderby=db.auth_event.user_id|db.auth_event.time_stamp, cache=(cache.ram,60),cacheable=True)
+    #my_test_events = db(db.auth_event.description.contains('Logged-')).select(db.auth_event.user_id, db.auth_event.description, db.auth_event.time_stamp)
+    users = []
+    for i in range(len(events)):
+        last_event = ((i == len(events) - 1) or events[i+1].user_id != events[i].user_id)
+        if last_event and 'Logged-in' in events[i].description:
+            users.append(events[i].user_id)
+    rows = db(db.auth_user.id.belongs(users)).select(cache=(cache.ram,60),cacheable=True)
+    #return locals()
+    return rows
+
+@cache.action()
+def download():
+    """
+    allows downloading of uploaded files
+    http://..../[app]/default/download/[filename]
+    """
+    return response.download(request, db)
+
+
+def call():
+    """
+    exposes services. for example:
+    http://..../[app]/default/call/jsonrpc
+    decorate with @services.jsonrpc the functions to expose
+    supports xml, json, xmlrpc, jsonrpc, amfrpc, rss, csv
+    """
+    return service()
+
+
+@auth.requires_login()
+def api():
+    """
+    this is example of API with access control
+    WEB2PY provides Hypermedia API (Collection+JSON) Experimental
+    """
+    from gluon.contrib.hypermedia import Collection
+    rules = {
+        '<tablename>': {'GET':{},'POST':{},'PUT':{},'DELETE':{}},
+        }
+    return Collection(db).process(request,response,rules)

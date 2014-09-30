@@ -1,0 +1,56 @@
+{{extend 'layout.html'}}
+
+<ul class="breadcrumb">
+    <li class="active"><a href="/">Home</a></li>
+</ul>
+
+<h2>
+    Create a new category
+</h2>
+
+{{=form}}
+
+<script>
+
+    var slug = function(str) {
+        str = str.replace(/^\s+|\s+$/g, ''); // trim
+        str = str.toLowerCase();
+
+        // remove accents, swap ñ for n, etc
+        var from = "ãàáäâẽèéëêìíïîõòóöôùúüûñç·/_,:;";
+        var to   = "aaaaaeeeeeiiiiooooouuuunc------";
+        for (var i=0, l=from.length ; i<l ; i++) {
+            str = str.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i));
+        }
+
+        str = str.replace(/[^a-z0-9 -]/g, '') // remove invalid chars
+        .replace(/\s+/g, '-') // collapse whitespace and replace by -
+        .replace(/-+/g, '-'); // collapse dashes
+
+        return str;
+    };
+
+    jQuery(document).ready(function() {
+        jQuery("table").css({width: "100%"});
+        jQuery(".text").css({width: "100%"});
+
+        var category_name_id = document.getElementById("category_name_id");
+        var my_form = jQuery("#category_name_id__row").parent().closest('form')
+        jQuery("#category_name_id__row").hide();
+
+        my_form.submit(function(e) {
+            var self = this;
+            e.preventDefault();
+
+            //slug the category name
+            var category_name = document.getElementById("category_name").value;
+            category_name_id.value = slug(category_name)
+
+            //add a time stamp to avoid double.
+            //category_name_id.value = slug(category_name) + "_" + jQuery.now();
+
+            self.submit();
+            return false; //is superfluous, but I put it here as a fallback
+        });
+    });
+</script>

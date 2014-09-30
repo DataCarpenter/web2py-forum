@@ -1,0 +1,167 @@
+{{extend 'layout.html'}}
+
+{{if request.function=='list_posts_by_votes':}}
+    <ul id="breadcrumb" class="breadcrumb">
+        <li><a href="/forum">Forum</a> <span class="divider">/</span></li>
+        <li class="active"><a href="{{=URL('list_posts_by_votes', args=category.name_id)}}">{{=category.name}}</a></li>
+    </ul>
+{{elif request.function=='list_posts_by_datetime':}}
+    <ul id="breadcrumb" class="breadcrumb">
+        <li><a href="/forum">Forum</a> <span class="divider">/</span></li>
+        <li class="active"><a href="{{=URL('list_posts_by_datetime', args=category.name_id)}}">{{=category.name}}</a></li>
+    </ul>
+{{pass}}
+
+<div class="btn-group" data-toggle="buttons-radio">
+    <a href="{{=URL('list_posts_by_datetime', args=category.name_id)}}" class="btn">
+        {{=T('sort by datetime')}}
+        <i class='icon-chevron-down'></i>
+    </a>
+
+    <a href="{{=URL('list_posts_by_votes', args=category.name_id)}}" class="btn">
+        {{=T('sort by votes')}}
+        <i class='icon-chevron-up'></i>
+    </a>
+</div>
+
+<div class="btn-group" data-toggle="buttons-radio" style="float: right;">
+    {{=A(T('publish a new post'), _class='btn btn-primary', _href=URL('create_post', args=category.name_id))}}
+    {{if auth.has_membership(group_id="moderator"):}}
+        {{=A(T('edit category'), _class='btn btn-warning', _href=URL('edit_category', args=category.name_id))}}
+    {{pass}}
+</div>
+
+<hr/>
+
+{{for post in rows:}}
+    <div class="forum_row" data-id="{{=post.name_id}}">
+        <div style="float: left;">
+            {{if post.avatar:}}
+                {{=IMG(_src=URL('download', args=post.avatar), _alt="My Logo", _class="avatar avatar_list_post")}}
+            {{else:}}
+                {{=IMG(_src=URL('static','images/default_avatar.png'), _alt="My Logo", _class="avatar avatar_list_post")}}
+            {{pass}}
+        </div>
+
+        <div class="list_post_body">
+            <!--  -->
+            <div onclick="location.href='{{=URL('view_post', args=post.name_id)}}';">
+                <span class="txt_blue">{{=post.title}}</span>
+            </div>
+
+            <div style="margin-top: 3px;">
+                <div style="margin-right: 10px; float: left;">
+                    <div class="float_left">
+                        <i class='icon-chevron-down vote-button' data-direction="down"></i>
+                    </div>
+                    <div class="float_left" style="margin-left: 5px; margin-right: 5px;">
+                        <span class="votes" data-vote="{{=post.name_id}}">{{=post.votes}}</span>
+                    </div>
+                    <div class="float_left">
+                        <i class='icon-chevron-up vote-button' data-direction="up"></i>
+                    </div>
+                </div>
+                <div class="star">
+                    {{if post.interest == 'yep':}}
+                        <img class="star_img" src="/static/images/star_blue.png" data-id="{{=post.id}}"></img>
+                    {{else:}}
+                        <img class="star_img" src="/static/images/star_grey.png" data-id="{{=post.id}}"></img>
+                    {{pass}}
+                </div>
+                <!--  -->
+                <div onclick="location.href='{{=URL('view_post', args=post.name_id)}}';">
+                    {{=T("by")}} {{=db.auth_user[post.created_by].nickname or db.auth_user[post.created_by].first_name}}
+                    - {{=post.nbr_msg}} {{=T("messages")}} - {{=post.nbr_vue}} {{=T("nbr vues")}} - {{=T("last modified")}} {{=prettydate(post.modified_on, T)}}
+                </div>
+            </div>
+        </div>
+    </div>
+{{pass}}
+
+{{if page>0:}}
+{{=A(T('previous'), _class='btn', _href=URL(args=(category.name_id, page-1)))}}
+{{pass}}
+
+{{if len(rows)>=40:}}
+{{=A(T('next'), _class='btn', _href=URL(args=(category.name_id, page+1)))}}
+{{pass}}
+
+<!--
+    <br>
+    <br>
+    <div>
+        {{=T("Connected users")}} :
+            <span id="connected_users">
+                {{for user_log in user_logged:}}
+                    {{=user_log.nickname or user_log.first_name}}
+                {{pass}}
+            </span>
+        </span>
+    </div>
+-->
+
+<script>
+    jQuery( document ).ready(function() {
+        localStorage["breadcrumb"] = JSON.stringify(jQuery("#breadcrumb").html());
+        jQuery.ajax({method:'post',
+                     url:'{{=URL('login_status')}}',
+                     data:{},
+                     success: function(data){
+                                  if (data === "False"){
+                                      jQuery('.vote-button').attr("disabled", true);
+                                  }
+                              }
+                    });
+    });
+
+    function do_ajax_vote(t, direction) {
+        var id = jQuery(t).parent().parent().parent().parent().attr('data-id');
+        jQuery.ajax({method:'post',
+                     url:'{{=URL('vote_callback')}}',
+                     data:{'id':id, 'direction':direction},
+                     success: function(data){
+                                var my_elem = jQuery("[data-vote='" + id + "']")[0];
+                                jQuery(my_elem).html(data);
+                              }
+                    });
+    }
+
+    jQuery('[data-direction=up]').click(
+        function(){
+            do_ajax_vote(this, "up");
+        }
+    );
+
+    jQuery('[data-direction=down]').click(
+        function(){
+            do_ajax_vote(this, "down");
+        }
+    );
+
+    jQuery(".star_img").click(
+        function(){
+            var my_src = jQuery(this).attr("src");
+            var my_id = jQuery(this).attr("data-id");
+            if (my_src == "/static/images/star_grey.png"){
+                jQuery(this).attr("src", "/static/images/star_blue.png");
+                set_interest(my_id, "yep");
+            }else{
+                jQuery(this).attr("src", "/static/images/star_grey.png");
+                set_interest(my_id, "no");
+            }
+        }
+    );
+
+    function set_interest(my_id, status){
+        jQuery.ajax({method:'post',
+                     url:'{{=URL('post_interest')}}',
+                     data:{'id':my_id, 'status':status},
+                    success: function(data){
+                        if (data === "False"){
+                            jQuery('.vote-button').attr("disabled", true);
+                        }
+                    }
+        });
+    }
+
+</script>

@@ -1,0 +1,148 @@
+{{extend 'layout.html'}}
+
+{{for m_cat_index in priority_m_cat:}}
+    <!-- {{=m_cat_index}} <br> -->
+    {{for m_cat in master_category:}}
+        {{if str(m_cat.id) == str(m_cat_index):}}
+            <div id="master_class_{{=m_cat.id}}" class="master_cat_row">
+                <div class="row_master_category">
+                    <div data-m_cat="{{=m_cat.id}}" class="master_category_title">
+                        <h4 class="master_category_title_name">
+                            {{=m_cat.name}}
+                        </h4>
+                        <span class="color_silver master_category_title_description">
+                            : {{=m_cat.description}}
+                        </span>
+                    </div>
+
+                    {{if auth.has_membership(group_id="moderator"):}}
+                        <div data-m_cat="{{=m_cat.id}}" class="master_category_priority">
+                            <div class="float_left">
+                                <i class='icon-chevron-down change-priority-button' prior-direction="down"></i>
+                            </div>
+                            <div class="float_left">
+                                <i class='icon-chevron-up change-priority-button' prior-direction="up"></i>
+                            </div>
+                        </div>
+                    {{pass}}
+                    <br>
+                </div>
+                <div>
+                    {{for category in rows:}}
+                        {{if category.master_category == m_cat.id:}}
+                            <div class="forum_row" onclick="location.href='{{=URL('list_posts_by_datetime', args=category.name_id)}}';">
+                                <table>
+                                    <tr>
+                                        <td rowspan="2" class="vert-align">
+                                            {{if category.avatar:}}
+                                                {{=IMG(_src=URL('download', args=category.avatar), _alt="My Logo", _class="avatar")}}
+                                            {{else:}}
+                                                {{=IMG(_src=URL('static','images/default_avatar.png'), _alt="My Logo", _class="avatar")}}
+                                            {{pass}}
+                                        </td>
+                                        <td>
+                                            <span class="txt_blue">{{=category.name}}</span>
+                                             - <span>{{=category.description}}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="color_silver">
+                                            {{=T("by")}} {{=db.auth_user[category.created_by].nickname or db.auth_user[category.created_by].first_name}}
+                                            - {{=category.nbr_post}} {{=T("posts")}} - {{=T("last modified")}} {{=prettydate(category.modified_on, T)}}
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        {{pass}}
+                    {{pass}}
+                </div>
+            </div>
+        {{pass}}
+    {{pass}}
+{{pass}}
+
+<hr/>
+
+<div id="button_add_category"></div>
+
+<!--
+    <br>
+    <br>
+    <div>
+        {{=T("Connected users")}} :
+            <span id="connected_users">
+                {{for user_log in user_logged:}}
+                    {{=user_log.nickname or user_log.first_name}}
+                {{pass}}
+            </span>
+        </span>
+    </div>
+-->
+
+<script>
+    jQuery( document ).ready(function() {
+
+        jQuery.ajax({method:'post',
+                     url:'{{=URL('group_status')}}',
+                     data:{groups_name : "moderator"},
+                     success: function(data){
+                                  if (data === "True"){
+                                      jQuery('#button_add_category').html(
+                                          '{{=A(T("Create master category"), _class="btn", _href=URL('create_master_category'), _id="create_master_category")}}' +
+                                          ' '+
+                                          '{{=A(T("Create category"), _class="btn", _href=URL('create_category'), _id="create_category")}}'
+                                      );
+
+                                      var my_elem = jQuery(".master_category_title").each(function(){
+                                          var my_attr = jQuery(this).attr('data-m_cat');
+                                          jQuery(this).click(function() {
+                                              window.open('/edit_master_category/' + my_attr, "_self");
+                                          });
+                                      });
+                                  }
+                              }
+                    });
+        /*
+        jQuery.ajax({method:'post',
+                     url:'{{=URL('user_logged_in')}}',
+                     data:{},
+                     success: function(data){
+                                  my_json = jQuery.parseJSON(data);
+                                  my_string = "";
+                                  for (var val in my_json){
+                                      my_string = my_string + my_json[val] + " ";
+                                  }
+                                  jQuery("#connected_users").html(my_string);
+                              }
+                    });
+         */
+    });
+
+    function do_ajax_prior(t, direction) {
+        var id = jQuery(t).parent().parent().attr('data-m_cat');
+        jQuery.ajax({method:'post',
+                     url:'{{=URL('prior_callback')}}',
+                     data:{'id':id, 'direction':direction},
+                     success: function(data){
+                                window.open('/', "_self");
+                              }
+                    });
+    }
+
+    jQuery('[prior-direction=up]').click(
+        function(){
+            do_ajax_prior(this, "up");
+        }
+    );
+
+    jQuery('[prior-direction=down]').click(
+        function(){
+            do_ajax_prior(this, "down");
+        }
+    );
+
+    jQuery('#myTab a').click(function (e) {
+        e.preventDefault();
+        $(this).tab('show');
+    })
+</script>

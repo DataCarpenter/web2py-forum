@@ -1,0 +1,7 @@
+.table tbody>tr>td.vert-align{
+    vertical-align: middle;
+}
+
+.nbr_post{
+    margin-right: 20px;
+}

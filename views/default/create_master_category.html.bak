@@ -1,0 +1,11 @@
+{{extend 'layout.html'}}
+
+<ul class="breadcrumb">
+    <li class="active"><a href="/">Home</a></li>
+</ul>
+
+<h2>
+    Create a new master category
+</h2>
+
+{{=form}}

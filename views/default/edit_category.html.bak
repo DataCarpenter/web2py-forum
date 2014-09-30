@@ -1,0 +1,21 @@
+{{extend 'layout.html'}}
+
+<ul class="breadcrumb">
+    <li class="active"><a href="/">Home</a></li>
+</ul>
+
+<h2>
+    {{=T("Edit category")}}
+</h2>
+
+<hr>
+
+{{=form}}
+
+<script>
+    jQuery( document ).ready(function() {
+        jQuery("table").css({width: "100%"});
+        jQuery(".text").css({width: "100%"});
+        jQuery("#category_name_id__row").hide();
+    });
+</script>

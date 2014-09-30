@@ -1,0 +1,37 @@
+import time
+
+print "-------------------"
+for row in db().select(db.task_interest_mail.email, distinct=True):
+    print row
+    task_interest_mail = db(db.task_interest_mail.email==row.email).select().first()
+    post = db(db.post.id==row.post_id).select().first()
+    comment = db(db.comm.id==row.comm_id).select().first()
+
+    """
+    print "send mail to: " + row.email
+    print "mail subject: " + post.title
+    print "html body : " + '<html>' +\
+                          '<h1>' + post.title + '</h1>' +\
+                          markmin2html(post.body) +\
+                          '<hr>' +\
+                          T('%s say: ', db.auth_user[comment.created_by].nickname or db.auth_user[comment.created_by].first_name) +\
+                          T('"%s"', comment.body) +\
+                          '</html>'
+    """
+
+    """
+    try:
+        print "send to:" + row.email
+        mail.send(row.email,
+                  T('The post %s are updated', post.title),
+                  '<html>' +
+                      '<h1>' + post.title + '</h1>' +
+                      T('%s say: ', db.auth_user[comment.created_by].nickname or db.auth_user[comment.created_by].first_name) +
+                      T('"%s"', comment.body) +
+                  '</html>')
+        #print db(db.task_interest_mail.id==row.id).select()
+        db(db.task_interest_mail.id==row.id).delete()
+        time.sleep(3)
+    except Exception, e:
+        print ("send mail to: %s failed, retry in 1 min. Error : %s", row.email, e)
+    """

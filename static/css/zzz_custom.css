@@ -1,0 +1,111 @@
+.table tbody>tr>td.vert-align{
+    vertical-align: middle!important;
+}
+
+.add_margin_to_images img{
+    /*margin: 20px 0px 20px 20px;*/
+}
+
+.forum_row{
+    border-bottom: 1px solid #ddd;
+    text-decoration: none;
+    padding: 15px 0 15px 5px;
+    color: #888;
+    white-space: nowrap;
+    font-size: 13px;
+    background-color: #eee;
+    border-radius: 2px;
+    cursor: pointer;
+
+    min-height: 48px;
+}
+
+.txt_blue{
+    color: #08c;
+}
+
+.post_title_div{
+    height:45px;
+}
+
+.post_title_txt{
+    float:left;
+}
+
+.post_title_button{
+    right: 10px; float: right; margin-top: 12px;
+}
+
+.button_direction{
+    height: 15px;
+}
+
+.avatar{
+    height: 30px;
+    border-radius: 3px;
+    padding: 5px;
+    margin-right: 10px;
+}
+
+.avatar_list_post{
+    margin-top: 5px;
+}
+
+.float_left{
+    float: left;
+}
+
+.color_silver{
+    color: silver;
+}
+
+.comments{
+    min-height: 50px;
+}
+
+.row_master_category{
+    height: 40px;
+}
+
+.master_category_title_name{
+    min-width: 50px;
+    display: block;
+    float: left;
+}
+
+.master_category_title{
+    cursor: pointer;
+}
+
+.master_category_title_description{
+    max-width: 70%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-top: 10px;
+    float: left;
+    margin-left: 5px;
+}
+
+.master_category_priority{
+    padding-top: 10px;
+    padding-left: 10px;
+    cursor: pointer;
+    float: left;
+}
+
+.star{
+    float: left;
+    margin-right: 10px;
+    margin-top: -2px;
+}
+
+.star_img{
+    width: 14px;
+    height: auto;
+}
+
+.list_post_body{
+    margin-top: 3px;
+    float: left;
+}
