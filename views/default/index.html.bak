@@ -1,9 +1,5 @@
 {{extend 'layout.html'}}
 
-<!--<ul class="breadcrumb">
-    <li class="active"><a href="/">Home</a></li>
-</ul>-->
-
 <span>{{=T("this page is yours")}}</span>
 
 <script>

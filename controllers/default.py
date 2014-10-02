@@ -28,13 +28,13 @@ def get_avatar(created_by):
         return avatar
     else:
         return None
-def index():
-    if auth.user:
-        return locals()
-    else:
-        redirect(URL(request.application, 'default', 'not_logged'))
+#def index():
+#    if auth.user:
+#        return locals()
+#    else:
+#        redirect(URL(request.application, 'default', 'not_logged'))
 
-def forum():
+def index():
     if auth.user:
         master_category = db(db.master_category).select()
         priority_m_cat = db.my_key_value(my_key="priority_m_cat")

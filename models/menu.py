@@ -22,8 +22,8 @@ response.google_analytics_id = None
 #########################################################################
 
 response.menu = [
-    (T('Home'), False, URL('default', 'index'), []),
-    (T('Forum'), False, URL('default', 'forum'), [])
+    #(T('Home'), False, URL('default', 'index'), []),
+    #(T('Forum'), False, URL('default', 'forum'), [])
 ]
 
 #Add all category name in the menu

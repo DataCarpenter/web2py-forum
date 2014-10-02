@@ -15,6 +15,7 @@
 '%s selected': '%s sélectionné',
 '%Y-%m-%d': '%d-%m-%Y',
 '%Y-%m-%d %H:%M:%S': '%d-%m-%Y %H:%M:%S',
+'1 day ago': '1 day ago',
 '1 week ago': '1 week ago',
 '?': '?',
 '@markmin\x01**not available** (requires the Python [[guppy http://pypi.python.org/pypi/guppy/ popup]] library)': '**not available** (requires the Python [[guppy http://pypi.python.org/pypi/guppy/ popup]] library)',

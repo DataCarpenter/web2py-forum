@@ -7,7 +7,7 @@
     </ul>
 {{elif request.function=='list_posts_by_datetime':}}
     <ul id="breadcrumb" class="breadcrumb">
-        <li><a href="/">Home</a> <span class="divider">/</span></li>
+        <li><a href="/forum">Forum</a> <span class="divider">/</span></li>
         <li class="active"><a href="{{=URL('list_posts_by_datetime', args=category.name_id)}}">{{=category.name}}</a></li>
     </ul>
 {{pass}}

@@ -1,5 +1,7 @@
 {{extend 'layout.html'}}
-<ul id="breadcrumb" class="breadcrumb"></ul>
+<ul class="breadcrumb">
+    <li class="active"><a href="/forum">Forum</a></li>
+</ul>
 
 <div class="well add_margin_to_images">
     <div class="post_title_div">

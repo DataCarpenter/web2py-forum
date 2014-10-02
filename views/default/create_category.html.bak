@@ -1,7 +1,7 @@
 {{extend 'layout.html'}}
 
 <ul class="breadcrumb">
-    <li class="active"><a href="/">Home</a></li>
+    <li class="active"><a href="/forum">Home</a></li>
 </ul>
 
 <h2>
