@@ -12,7 +12,7 @@
 if not request.env.web2py_runtime_gae:
     ## if NOT running on Google App Engine use SQLite or other DB
     #db = DAL('sqlite://storage.sqlite',pool_size=1,check_reserved=['all'])
-    db = DAL('mysql://<your login>:<your pass>@mysql.server/olituks$jdr')
+    db = DAL('mysql://olituks:OLI32tuks@mysql.server/olituks$jdr')
 else:
     ## connect to Google BigTable (optional 'google:datastore://namespace')
     db = DAL('google:datastore+ndb')
@@ -87,7 +87,7 @@ auth.settings.login_next = URL('index')
 mail = auth.settings.mailer
 mail.settings.server = 'smtp.gmail.com:587'
 mail.settings.sender = 'olituks@gmail.com'
-mail.settings.login = 'olituks@gmail.com:<your pass>'
+mail.settings.login = 'olituks@gmail.com:sczlztodqpeuyzwt'
 mail.settings.tls = True
 
 ## configure auth policy
